@@ -1,0 +1,73 @@
+﻿Product Requirements Document: k6 HTTP Request Load Testing
+Document Version: 1.0
+Date: October 28, 2025
+Owner: Performance Engineering / DevOps Team
+1. Goal and Objectives
+The primary objective is to implement automated, protocol-level performance tests using k6 to ensure the stability and reliability of our API endpoints under anticipated and peak traffic loads.
+Key Objectives:
+1. Validate Performance SLOs: Ensure critical API response times (P95 latency) meet defined Service Level Objectives.
+2. Verify Reliability: Confirm that the system maintains an acceptable error rate (availability) during load.
+3. Shift Left: Create test scripts that are easily readable, maintainable, and integrate seamlessly into the CI/CD pipeline for continuous performance monitoring.
+2. Scope
+This PRD covers the implementation of performance and load testing scenarios using the core k6 framework and the built-in k6/http module.
+In-Scope:
+* Load Test Types: Smoke testing, average-load testing, and ramping-load testing.
+* Protocol: HTTP/1.1 and HTTP/2 requests (GET, POST, PUT, DELETE).
+* Test Capabilities: Cookie management, dynamic data extraction (correlation), and request parameterization.
+* Success Criteria: Definition of clear pass/fail criteria using k6's built-in Thresholds.
+Out-of-Scope:
+* Browser-level testing (front-end performance).
+* Integration with external reporting tools (e.g., Grafana, Prometheus).
+* Non-HTTP protocol testing (e.g., WebSockets, gRPC).
+3. Key Requirements and Features
+The final k6 test script must include the following structural and functional requirements:
+3.1 Load Modeling (Workload Definition)
+The script must leverage the export const options configuration block to define the load profile.
+ID
+	Requirement
+	Description
+	R-1
+	Ramping VUs
+	Must be able to simulate a ramp-up and ramp-down of Virtual Users (VUs) to test system warmup and sustained capacity.
+	R-2
+	Duration & Stages
+	The script must clearly define stages to model different phases of load (e.g., "Ramp-up," "Sustained Load," "Ramp-down").
+	R-3
+	Dynamic Flow
+	Must simulate a complete user journey, requiring the script to execute requests sequentially, for example: Login $\rightarrow$ Get Data $\rightarrow$ Update Data $\rightarrow$ Logout.
+	3.2 Correctness and Assertion
+Functional correctness must be validated during the load test to ensure the system is not only fast but also functional.
+ID
+	Requirement
+	Description
+	R-4
+	Checks (check())
+	Every critical HTTP request must include assertions to verify functional correctness (e.g., response.status === 200, response.json('id') is a valid number).
+	R-5
+	Data Correlation
+	The script must extract necessary dynamic data (e.g., a session token or an ID created by a POST request) from a response body for use in subsequent requests.
+	R-6
+	Scenario Grouping
+	Related steps within a user flow must be encapsulated using group() to allow metric aggregation for specific business processes (e.g., "Checkout Funnel").
+	4. Success Criteria (Thresholds)
+The following Service Level Objectives (SLOs) must be enforced using k6 Thresholds in the options block. The test is considered a FAIL if any of these conditions are violated.
+Metric Name
+	k6 Metric
+	Success Criteria (Threshold)
+	Purpose
+	Max Latency
+	http_req_duration
+	p(95) < 300ms
+	95% of all requests must complete within 300 milliseconds.
+	Error Rate
+	http_req_failed
+	rate < 0.01
+	The global rate of failed HTTP requests (status code $\ge 400$) must be less than $1\%$.
+	Functional Success
+	checks
+	rate > 0.98
+	The overall rate of successful functional assertions (check()) must be greater than $98\%$.
+	Availability
+	http_reqs (Specific API)
+	rate < 0.005
+	Critical API endpoints (e.g., POST /login) must have an error rate less than $0.5\%$.
